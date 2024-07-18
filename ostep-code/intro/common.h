@@ -15,7 +15,7 @@ double GetTime() {
 void Spin(int howlong) {
     double t = GetTime();
     while ((GetTime() - t) < (double) howlong)
-	; // do nothing in loop
+        ; // do nothing in loop
 }
 
 #endif // __common_h__
