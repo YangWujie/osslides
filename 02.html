@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+
+<head>
+  <meta charset="utf-8" />
+  <title>操作系统引论</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css" integrity="sha512-0AUO8B5ll9y1ERV/55xq3HeccBGnvAJQsVGitNac/iQCLyDTGLUBMPqlupIWp/rJg0hV3WWHusXchEIdqFAv1Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/theme/black.min.css" integrity="sha512-B1sAcZ4KSpvbIUUvxaoqy56z88d6fozQyEV54K0gVBUMDMcVu9CAXMwJ5wTWo650j3IQH6yDEETiek6lrk/zCw==" crossorigin="anonymous" referrerpolicy="no-referrer" id="theme" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/monokai.min.css" integrity="sha512-z8wQkuDRFwCBfoj7KOiu1MECaRVoXx6rZQWL21x0BsVVH7JkqCp1Otf39qve6CrCycOOL5o9vgfII5Smds23rg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+      <section>
+        <h2>操作系统引导</h2>
+      </section>
+
+      <section>
+        <ul>
+          <li>操作系统是硬件之上的第一层软件</li>
+          <li>这意味着操作系统得不到其他软件的支持</li>
+          <li>printf这样的库函数无法使用，因为它们依赖操作系统</li>
+          <li>操作系统是一个复杂的系统，装入过程也比较复杂</li>
+          <li>貌似装入操作系统本身需要操作系统的支持：驱动外部存储器，识别文件系统，找到并装入相关文件......</li>
+          <li>先有鸡还是先有蛋？</li>
+        </ul>
+      </section>
+
+      <section>
+        所以，电脑工程师就用下面的术语描述这个过程
+        <h1>bootstrap</h1>
+        <h1>boot</h1>
+        <h1>自举</h1>
+      </section>
+
+      <section>
+        <img src="assets/bootstrap.jpg" alt="自举">
+      </section>
+
+      <section>
+        <ul>
+          <li>电脑工程师的解决方案是：先装入一个简单的程序，然后由这个程序装入一个复杂点的程序，重复这个过程，直到完成操作系统的引导。</li>
+          <li>这个过程有点类似核裂变链式反应</li>
+        </ul>
+      </section>
+
+      <section>
+        <img src="assets/atom.webp" alt="原子裂变链式反应">
+      </section>
+
+      <section>
+        通常，操作系统引导程序不被认为属于操作系统的一部分，因为操作系统被引导完成后，这个程序就废弃了。例如，
+        著名的<a href="https://www.gnu.org/software/grub/">GNU GRUB</a>就是一个独立于操作系统的项目。
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+                ## test.S
+                ```asm
+                .code16            #generate 16-bit code
+                .text              #executable code location
+                  .globl _start;
+                _start:            #code entry point
+                  . = _start + 510 #mov to 510th byte from 0 pos
+                  .byte 0x55       #append boot signature
+                  .byte 0xaa       #append boot signature
+                ```
+
+                ```bash
+                as test.S -o test.o
+                ld -Ttext 0x7c00 --oformat=binary test.o –o test.bin
+                ```
+                </script>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+                ```bash
+                dd if=/dev/zero of=floppy.img bs=512 count=2880
+                dd if=test.bin of=floppy.img conv=notrunc
+                ```
+                </script>
+      </section>
+
+      <section>
+        <h2>添加软盘驱动器</h2>
+        <img src="assets/floppy1.png" alt="添加软盘驱动器">
+      </section>
+
+      <section>
+        <h2>插入软盘</h2>
+        <img src="assets/floppy2.png" alt="插入软盘">
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+                ```asm
+                .code16            #generate 16-bit code
+                .text              #executable code location
+                  .globl _start;
+                _start:            #code entry point
+                
+                  movb $'X' , %al  #character to print
+                  movb $0x0e, %ah  #bios service code to print
+                  int  $0x10       #interrupt the cpu now
+                
+                  . = _start + 510 #mov to 510th byte from 0 pos
+                  .byte 0x55       #append boot signature
+                  .byte 0xaa       #append boot signature 
+                ```
+                </script>
+      </section>
+
+      <section>
+        <h2>请仿照上面代码，写一个存在于引导扇区的Hello World程序。
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+                ## test.ld
+                ```asm
+                ENTRY(main);
+                SECTIONS
+                {
+                    . = 0x7C00;
+                    .text : AT(0x7C00)
+                    {
+                        *(.text);
+                    }
+                    .sig : AT(0x7DFE)
+                    {
+                        SHORT(0xaa55);
+                    }
+                } 
+                ```
+                </script>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+                ## test.c
+                ```C
+                /*generate 16-bit code*/
+                __asm__(".code16gcc\n");
+                
+                /*jump boot code entry*/
+                __asm__("jmpl $0x0000, $main\n");
+                
+                /* user defined function to print series of characters terminated by null character */
+                void printString(const char* pStr) {
+                     while(*pStr) {
+                          __asm__ __volatile__ (
+                               "int $0x10" : : "a"(0x0e00 | *pStr), "b"(0x0007)
+                          );
+                          ++pStr;
+                     }
+                }
+                
+                void main() {
+                     /* calling the printString function passing string as an argument */
+                     printString("Hello, World!");
+                } 
+                ```
+                </script>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+                ```bash
+                gcc -c -Os -m16 -ffreestanding -Wall -Werror -o test.o test.c
+                ld -static -Ttest.ld -melf_i386 -nostdlib --nmagic -o test.elf test.o
+                objcopy -O binary test.elf test.bin
+                dd if=test.bin of=floppy.img conv=notrunc
+                ```
+                </script>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+                ## test.c
+                ```C
+                __asm__(".code16gcc\n");
+                __asm__("jmpl $0x0000, $main\n");
+                
+                #define MAX_COLS     320
+                #define MAX_ROWS     200
+                
+                void drawPixel(unsigned char color, int col, int row) {
+                     __asm__ __volatile__ (
+                          "int $0x10" : : "a"(0x0c00 | color), "c"(col), "d"(row)
+                     );
+                }
+                
+                void initEnvironment() {
+                     __asm__ __volatile__ (
+                          "int $0x10" : : "a"(0x03)
+                     );
+                     __asm__ __volatile__ (
+                          "int $0x10" : : "a"(0x0013)
+                     );
+                }
+                
+                void initGraphics() {
+                     int i = 0, j = 0;
+                     int m = 0;
+                     int cnt1 = 0, cnt2 =0;
+                     unsigned char color = 10;
+                
+                     for(;;) {
+                          if(m < (MAX_ROWS - m)) {
+                               ++cnt1;
+                          }
+                          if(m < (MAX_COLS - m - 3)) {
+                               ++cnt2;
+                          }
+                
+                          if(cnt1 != cnt2) {
+                               cnt1  = 0;
+                               cnt2  = 0;
+                               m     = 0;
+                               if(++color > 255) color= 0;
+                          }
+                
+                          j = 0;
+                          for(i = m; i < MAX_ROWS - m; ++i) {
+                               drawPixel(color, j+m, i);
+                          }
+                          for(j = m; j < MAX_COLS - m; ++j) {
+                               drawPixel(color, j, i);
+                          }
+                
+                          for(i = MAX_ROWS - m - 1 ; i >= m; --i) {
+                               drawPixel(color, MAX_COLS - m - 1, i);
+                          }
+                          for(j = MAX_COLS - m - 1; j >= m; --j) {
+                               drawPixel(color, j, m);
+                          }
+                          m += 6;
+                          if(++color > 255)  color = 0;
+                     }
+                }
+                
+                void main() {
+                     initEnvironment();
+                     initGraphics();
+                }
+                ```
+                </script>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+                ```bash
+                gcc -c -Os -m16 -ffreestanding -Wall -Werror -o test.o test.c
+                ld -static -Ttest.ld -melf_i386 -nostdlib --nmagic -o test.elf test.o
+                objcopy -O binary test.elf test.bin
+                dd if=test.bin of=floppy.img conv=notrunc
+                ```
+                </script>
+      </section>
+
+      <section>
+        <h2>操作系统体系结构示意图</h2>
+        <img src="assets/os_architecture.svg" alt="">
+      </section>
+
+      <section>
+        <h2>系统调用</h2>
+        <img src="assets/system_call.svg" alt="">
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+          ## C语言Hello Wrold程序
+    
+          ```C
+          #include <stdio.h>
+    
+          int main()
+          {
+            printf("Hello, World\n");
+            return 0;
+          }
+          ```
+    
+          ```Bash
+          gcc hello.c -o hello
+          ./hello
+          ```
+        </script>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+          ```Bash
+          ltrace ./hello
+          ```
+        </script>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+          ```Bash
+          strace ./hello
+          ```
+        </script>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+          ```Bash
+          strace ./hello > /dev/null
+          ```
+        </script>
+      </section>
+
+      <section>
+        <a href="https://en.wikipedia.org/wiki/Null_device">Null device</a>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+          ```Bash
+          strace -o trace.log ./hello
+          ```
+        </script>
+      </section>
+
+      <section>
+        <pre><code>
+...
+fstat(1, {st_mode=S_IFCHR|0666, st_rdev=makedev(1, 3), ...}) = 0
+ioctl(1, TCGETS, 0x7ffffd8640b0)        = -1 ENOTTY (Inappropriate ioctl for device)
+brk(NULL)                               = 0x55c91c00a000
+brk(0x55c91c02b000)                     = 0x55c91c02b000
+write(1, "Hello, World!\n", 14)         = 14
+exit_group(0)                           = ?
++++ exited with 0 +++
+        </code></pre>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+          ```C
+          #include <stdio.h>
+    
+          int main()
+          {
+            printf("Hello, World!\n");
+            puts("Hello Again!");
+            return 0;
+          }
+          ```    
+        </script>
+      </section>
+
+      <section>
+        <pre><code>
+...
+fstat(1, {st_mode=S_IFCHR|0666, st_rdev=makedev(1, 3), ...}) = 0
+ioctl(1, TCGETS, 0x7ffd7bdf3d30)        = -1 ENOTTY (Inappropriate ioctl for device)
+brk(NULL)                               = 0x55f485a28000
+brk(0x55f485a49000)                     = 0x55f485a49000
+write(1, "Hello, World!\nHello Again!\n", 27) = 27
+exit_group(0)                           = ?
++++ exited with 0 +++
+        </code></pre>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+          ```C
+          #include <stdio.h>
+    
+          int main()
+          {
+            printf("Hello, World!\n");
+            flush(stdout);
+            puts("Hello Again!");
+            return 0;
+          }
+          ```    
+        </script>
+      </section>
+
+      <section>
+        <pre><code>
+...
+fstat(1, {st_mode=S_IFCHR|0666, st_rdev=makedev(1, 3), ...}) = 0
+ioctl(1, TCGETS, 0x7fff2f234e00)        = -1 ENOTTY (Inappropriate ioctl for device)
+brk(NULL)                               = 0x560fb382f000
+brk(0x560fb3850000)                     = 0x560fb3850000
+write(1, "Hello, World!\n", 14)         = 14
+write(1, "Hello Again!\n", 13)          = 13
+exit_group(0)                           = ?
++++ exited with 0 +++
+        </code></pre>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+          ```Bash
+          strace ls > /dev/null
+          ```
+        </script>
+      </section>
+
+      <section>
+        <pre><code>
+...
+fstat(1, {st_mode=S_IFCHR|0666, st_rdev=makedev(1, 3), ...}) = 0
+ioctl(1, TCGETS, 0x7ffd469daab0)        = -1 ENOTTY (Inappropriate ioctl for device)
+write(1, "OS\nhello\nhello.c\nreveal.js\n", 27) = 27
+close(1)                                = 0
+close(2)                                = 0
+exit_group(0)                           = ?
++++ exited with 0 +++
+        </code></pre>
+      </section>
+
+      <section>
+        <img src="assets/two_modes.svg" alt="">
+      </section>
+
+      <section>
+        <h2>系统调用 vs 函数调用</h2>
+        <ul>
+          <li>系统调用涉及CPU运行模式切换</li>
+          <li>系统调用需要专用指令</li>
+        </ul>
+  
+        <p>请参考：<a href="https://www.geeksforgeeks.org/difference-between-system-call-and-library-call/">Difference between system call and library call</a></p>
+      </section>
+
+      <section>
+        <h2>命令行接口</h2>
+        A command-line interpreter or command-line processor uses a command-line interface (CLI) to receive commands from a user in the form of lines of text.
+      </section>
+
+      <section>
+        <h1>Shell</h1>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+          ```Bash
+          cat /etc/shells
+          ```
+        </script>
+      </section>
+
+      <section>
+        <h2>Linux 有多少个命令？</h2>
+
+        <a href="https://www.quora.com/How-many-commands-does-Linux-have-and-how-can-I-remember-all-of-them">How many commands does Linux have, and how can I remember all of them?</a>
+      </section>
+
+      <section>
+        <h2>输入输出重定向</h2>
+        Input/Output (I/O) redirection in Linux refers to the ability of the Linux operating system that allows us to change the standard input (stdin) and standard output (stdout) when executing a command on the terminal.
+      </section>
+
+      <section>
+        <img src="assets/ior.jpg" alt="">
+      </section>
+
+      <section>
+        <img src="assets/pipe.png" alt="">
+      </section>
+
+      <section>
+        <h2>fruits.txt</h2>
+        <pre><code>
+          peach
+          grape
+          pear
+          apple
+          cherry
+          blackberry
+          raspberry
+          banana
+          pear
+          apple
+          grape
+          apple
+        </code></pre>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+          ```Bash
+          cat fruits | sort |uniq
+          cat fruits | grep
+          cat fruits | wc -l
+          ```
+        </script>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js" integrity="sha512-sMRSj1Ns64C2OE6VNS7WrV63OHW7dLAvi96CXRoy9AEe/tKF+868fhUJpc5ZKS166lwhe2ArCYjFitLJUY+VWA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js" integrity="sha512-xkVKkN0o7xECTHSUZ9zdsBYRXiAKH7CZ3aICpW6aQJZsufVVRLhEBTDjTpC1tPzm+gNZiOeW174zXAB2fOLsTg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/markdown/markdown.min.js" integrity="sha512-4exkEeyVuaWUFKozXl6L3UCugl6ai1cKnrVFkWUstdrNB2sDxxmPEaHBzTlYm9wX78EjPzEBG0s8k37oPeUFIw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    Reveal.initialize({
+      plugins: [RevealMarkdown, RevealHighlight]
+    });
+  </script>
+</body>
+
+</html>
