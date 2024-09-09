@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+
+<head>
+  <meta charset="utf-8" />
+  <title>操作系统引论</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css" integrity="sha512-0AUO8B5ll9y1ERV/55xq3HeccBGnvAJQsVGitNac/iQCLyDTGLUBMPqlupIWp/rJg0hV3WWHusXchEIdqFAv1Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/theme/black.min.css" integrity="sha512-B1sAcZ4KSpvbIUUvxaoqy56z88d6fozQyEV54K0gVBUMDMcVu9CAXMwJ5wTWo650j3IQH6yDEETiek6lrk/zCw==" crossorigin="anonymous" referrerpolicy="no-referrer" id="theme" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/monokai.min.css" integrity="sha512-z8wQkuDRFwCBfoj7KOiu1MECaRVoXx6rZQWL21x0BsVVH7JkqCp1Otf39qve6CrCycOOL5o9vgfII5Smds23rg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+        <section>
+            <h2>操作系统的发展历程</h2>
+            <ol>
+                <li>无操作系统</li>
+                <li>单道批处理系统</li>
+                <li>多道批处理系统</li>
+                <li>分时系统</li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>操作系统的主要功能</h2>
+            <ul>
+                <li>处理机管理</li>
+                <li>存储器管理</li>
+                <li>设备管理</li>
+                <li>文件管理</li>
+                <li>用户接口</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>操作系统结构设计</h2>
+        </section>
+
+        <section>
+            <h2>传统的操作系统结构</h2>
+            <ol>
+                <li>无结构操作系统</li>
+                <li>模块化结构操作系统</li>
+                <li>分层结构操作系统</li>
+            </ol>
+        </section>
+        
+        <section>
+            操作系统是一个极其复杂的大型软件系统，我们不仅可以通过结构设计来分解操作系统的复杂度，还可以基于面向对象技术中的“抽象”和“隐蔽”原则控制系统的复杂性，再进一步利用“对象”、“封装”和“继承”等概念来确保操作系统的“正确性”、“可靠性”、“易修改性”、“易扩展性”等，并提高操作系统的设计速度。正因为面向对象技术能带来如此多的好处，故面向对象技术被广泛应用于现代操作系统的设计中。
+        </section>
+
+        <section>
+            <h2>事实</h2>
+            <p>C++一直被 Linux 内核所排斥</p>
+        </section>
+
+        <section>
+            <a href="https://www.zdnet.com/article/linus-torvalds-is-cautiously-optimistic-about-bringing-rust-into-the-linux-kernels-next-release/">Linus Torvalds is cautiously optimistic about bringing Rust into Linux kernel's next release</a>
+        </section>
+
+        <section>
+            <h2><a href="https://www.rust-lang.org/">Rust</a></h2>
+            <p>A language empowering everyone to build reliable and efficient software.</p>
+        </section>
+
+        <section>
+            <h2>微内核</h2>
+        </section>
+
+        <section>
+            <p><a href="https://en.wikipedia.org/wiki/Andrew_S._Tanenbaum">Andrew Tanenbaum</a></p>
+
+            <p>1992</p>
+
+            <h2><a href="http://www.linfo.org/obsolete.html">"LINUX is obsolete"</a></h2>
+        </section>
+
+        <section>
+            <img src="assets/OS-structure2.svg" alt="微内核与传统内核对比">
+        </section>
+
+        <section>
+            <h2><a href="https://en.wikipedia.org/wiki/Microkernel#History">微内核的历史</a></h2>
+            <ul>
+                <li>曾经红火一时（上世纪80年代）</li>
+                <li>一度沉寂（上世纪90年代末）</li>
+                <li>研究仍在继续</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>目前主流操作系统的架构类型</h2>
+            <ul>
+                <li>Windows：混合型</li>
+                <li>macOS：混合型</li>
+                <li>Linux：宏内核</li>
+                <li><a href="https://www.minix3.org/">Minix</a>：微内核</li>
+            </ul>
+        </section>
+
+        <section>
+            <a href="https://en.wikipedia.org/wiki/Linus_Torvalds">Linus Torvalds</a>
+
+            <p>2006</p>
+            
+            <h2><a href="https://www.realworldtech.com/forum/?threadid=65915&curpostid=65936">As to the whole "hybrid kernel" thing - it's just marketing. </a></h2>
+        </section>
+
+        <section>
+            <p>几乎被人遗忘的</p>
+            
+            <h2><a href="https://www.gnu.org/software/hurd/">GNU Hurd</a></h2>
+
+            <p> "Hurd" stands for "Hird of Unix-Replacing Daemons". And, then, "Hird" stands for "Hurd of Interfaces Representing Depth". We have here, to my knowledge, the first software to be named by a pair of mutually recursive acronyms.</p>
+        </section>
+
+        <section>
+            <p>Hurd 和 macOS 均基于微内核的</p>
+            
+            <h2><a href="https://en.wikipedia.org/wiki/Mach_(kernel)">Mach</a></h2>
+
+        </section>
+
+        <section>
+            <h2>微内核操作系统的优点(教材)</h2>
+            由于微内核OS结构是建立在模块化、层次化结构的基础上的，并采用了客户/服务器模式和面向对象的程序设计技术，因此，微内核结构的操作系统是集各种技术优点之大成。
+            <ol>
+                <li>提高了系统的可扩展性</li>
+                <li>增强了系统的可靠性</li>
+                <li>可移植性强</li>
+                <li>提供了对分布式系统的支持</li>
+                <li>融入了面向对象技术</li>
+            </ol>
+        </section>
+
+        <section>
+            <a href="https://en.wikipedia.org/wiki/Linus_Torvalds">Linus Torvalds</a>
+
+            <h2><a href="https://www.youtube.com/watch?v=CYvJPra7Ebk">Nothing better than C</a></h2>
+        </section>
+
+        <section>
+            <a href="https://en.wikipedia.org/wiki/Linus_Torvalds">Linus Torvalds</a>
+
+            <h2><a href="https://yarchive.net/comp/linux/c++.html">对 C++ 的抱怨</a></h2>
+        </section>
+
+        <section>
+            <a href="https://en.wikipedia.org/wiki/Linus_Torvalds">Linus Torvalds</a>
+
+            <h2>Talk is cheap. Show me the code.</h2>
+            <h2>屁话少说，放码过来。</h2>
+        </section>
+
+        <section>
+            <h2>在你对一件事情有深入理解之前，请不要轻易站队或做判断。</h2>
+        </section>
+
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js" integrity="sha512-sMRSj1Ns64C2OE6VNS7WrV63OHW7dLAvi96CXRoy9AEe/tKF+868fhUJpc5ZKS166lwhe2ArCYjFitLJUY+VWA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js" integrity="sha512-xkVKkN0o7xECTHSUZ9zdsBYRXiAKH7CZ3aICpW6aQJZsufVVRLhEBTDjTpC1tPzm+gNZiOeW174zXAB2fOLsTg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/markdown/markdown.min.js" integrity="sha512-4exkEeyVuaWUFKozXl6L3UCugl6ai1cKnrVFkWUstdrNB2sDxxmPEaHBzTlYm9wX78EjPzEBG0s8k37oPeUFIw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/zoom/zoom.min.js" integrity="sha512-Gras1ky8LoFJWwMTxBWyN2wfHfnJXQlyhHFH3M+m/jHe297DZsrQxg9P6Kxka6waxl4NeeQzietoFlCxL7x10g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+  Reveal.initialize({
+    plugins: [RevealMarkdown, RevealHighlight, RevealZoom]
+  });
+</script>
+</body>
+
+</html>
