@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+
+<head>
+  <meta charset="utf-8" />
+  <title>进程的描述与控制</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css" integrity="sha512-0AUO8B5ll9y1ERV/55xq3HeccBGnvAJQsVGitNac/iQCLyDTGLUBMPqlupIWp/rJg0hV3WWHusXchEIdqFAv1Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/theme/black.min.css" integrity="sha512-B1sAcZ4KSpvbIUUvxaoqy56z88d6fozQyEV54K0gVBUMDMcVu9CAXMwJ5wTWo650j3IQH6yDEETiek6lrk/zCw==" crossorigin="anonymous" referrerpolicy="no-referrer" id="theme" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/monokai.min.css" integrity="sha512-z8wQkuDRFwCBfoj7KOiu1MECaRVoXx6rZQWL21x0BsVVH7JkqCp1Otf39qve6CrCycOOL5o9vgfII5Smds23rg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+        
+        <section>
+            <h2>进程的描述与控制</h2>
+            <p>在传统的操作系统中，为了提高资源利用率和系统吞吐量，通常采用多道程序技术，将多个程序同时装入内存，并使之并发运行，传统意义上的程序不再能独立运行。此时，作为资源分配和独立运行的基本单位都是进程。</p>
+            <p>?</p>
+        </section>
+
+        <section>
+            <h2>前趋图</h2>
+            <p>它要表达的意思，无非有的操作有先后次序要求，有的则没有，仅此而已。我觉得这东西对编译器设计或者处理机设计更有用，和我们操作系统关系并不大。</p>
+        </section>
+
+        <section>
+            <img src="assets/前趋图.jpg" alt="前趋图">
+        </section>
+
+        <section>
+            <h2>程序顺序执行时的特征</h2>
+            <ul>
+                <li>顺序性</li>
+                <li>封闭性</li>
+                <li>可再现性</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>程序并发执行时的特征</h2>
+            <ul>
+                <li>间断性</li>
+                <li>失去封闭性</li>
+                <li>不可再现性</li>
+            </ul>
+        </section>
+
+        <section>
+            <p>例子程序 threads 的运行结果就具有不可再现性</p>
+            <h1>结果不可再现的计算是没有意义的</h1>
+        </section>
+
+        <section>
+            <h2>进程的引入</h2>
+            <p>在多道程序环境下，程序的执行属于并发执行，此时它们将失去其封闭性，并具有间断性，以及其运行结果不可再现性的特征。由此，决定了通常的程序是不能参与并发执行的，否则，程序的运行也就失去了意义。为了能使程序并发执行，并且可以对并发执行的程序加以描述和控制，人们引入了“进程”的概念。</p>
+        </section>
+
+        <section>
+            <h2>这话有点让人看不懂</h2>
+            <ul>
+            <li>即便引入了进程概念，threads这个程序的结果也具有不可再现性啊！</li>
+            <li>另外，即便在不支持多道程序的DOS系统里，程序的运行结果也有可能不具有可再现性。</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Process(wikipedia)</h2>
+            <p>In computing, a process is the instance of a computer program that is being executed by one or many threads.</p>
+        </section>
+
+        <section>
+            <h2>Process</h2>
+            <p>A process is an instance of a program in execution. </p>
+        </section>
+
+        <section>
+            <h2>Process is a running program.</h2>
+        </section>
+
+        <section>
+            <h2>进程是一个运行中的程序，而运行中的程序需要一个（虚拟的）计算环境。</h2>
+        </section>
+
+        <section>
+            <h2>进程的三种基本状态</h2>
+            <ul>
+                <li>就绪状态</li>
+                <li>运行状态</li>
+                <li>阻塞状态</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>进程的三种基本状态及其转换</h2>
+            <img src="assets/process_states_3.jpg" alt="">
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ## getchar.c
+            ```C
+            #include <stdio.h>
+
+            int main () {
+                char c;
+             
+                printf("Enter character: ");
+                c = getchar();
+             
+                printf("Character entered: ");
+                putchar(c);
+                putchar('\n');
+            
+                return(0);
+            }
+            ```
+
+            ```Bash
+            gcc getchar.c -o getchar
+            ./getchar
+            ```
+            ```Bash
+            ps a
+            ```
+            </script>
+        </section>
+
+        <section>
+            <h2>ps 的进程状态码</h2>
+            <pre>
+D    uninterruptible sleep (usually IO)
+R    running or runnable (on run queue)
+S    interruptible sleep (waiting for an event to complete)
+T    stopped by job control signal
+t    stopped by debugger during the tracing
+W    paging (not valid since the 2.6.xx kernel)
+X    dead (should never be seen)
+Z    defunct ("zombie") process, terminated but not reaped by its parent
+            </pre>
+        </section>
+
+        <section>
+            <ul>
+            <li>可以看出，getchar在等待用户输入时处于“S”态。</li>
+            <li>cpu 这个程序如果用 ps 查看，会处于什么状态?</li>
+            <li>mem 这个程序呢？</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>进程的挂起</h2>
+            <img src="assets/process_states_suspend.jpg" alt="">
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+                在 mem 正在运行时，按 <kbd>Ctrl</kbd> + <kbd>z</kbd>，然后用 ps 查看，可以看到 mem 处于T(挂起状态)。
+            </script>
+        </section>
+
+        <section>
+            <h2>time</h2>
+            工具 time 可以用来查看程序的持续时间，以及程序实际占用 cpu 的时间。
+        </section>
+      
+        <section>
+            <h2>Zombie</h2>
+            <img src="assets/process_states_5.jpg" alt="">
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ## child.c
+            ```C
+            #include <stdio.h>
+            #include <stddef.h>
+            #include <stdlib.h>
+            #include <unistd.h>
+            #include <sys/types.h>
+            #include <sys/wait.h>
+            
+            int main() {
+                int status;
+                pid_t pid;
+            
+                pid = fork();
+                if (pid == 0) {
+                    /* This is the child process.  Execute the shell command. */
+                    printf("I'm child.\n");
+                    execl("./hello", "./hello", NULL);
+                    _exit(EXIT_FAILURE);
+                }
+                else if (pid < 0)
+                    /* The fork failed.  Report failure.  */
+                    status = -1;
+                else {
+                    /* This is the parent process.  Wait for the child to complete.  */
+                    printf("I'm parent.\n");
+                    getchar();
+                    if (waitpid(pid, &status, 0) != pid)
+                        status = -1;
+                }
+            
+                return status;
+            }
+            ```
+
+            ```Bash
+            gcc child.c -o child
+            ./child
+            ```
+            </script>
+        </section>
+
+        <section>
+            <ul>
+                <li>这个程序不讲武德，竟然同时执行了 if 的两个分支！</li>
+                <li>因为这里有父子两个进程</li>
+                <li>在键入字符之前，可以看到子进程的 Zombie 状态</li>
+            </ul>
+        </section>
+
+    </div>
+</div>
+
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js" integrity="sha512-sMRSj1Ns64C2OE6VNS7WrV63OHW7dLAvi96CXRoy9AEe/tKF+868fhUJpc5ZKS166lwhe2ArCYjFitLJUY+VWA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js" integrity="sha512-xkVKkN0o7xECTHSUZ9zdsBYRXiAKH7CZ3aICpW6aQJZsufVVRLhEBTDjTpC1tPzm+gNZiOeW174zXAB2fOLsTg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/markdown/markdown.min.js" integrity="sha512-4exkEeyVuaWUFKozXl6L3UCugl6ai1cKnrVFkWUstdrNB2sDxxmPEaHBzTlYm9wX78EjPzEBG0s8k37oPeUFIw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/zoom/zoom.min.js" integrity="sha512-Gras1ky8LoFJWwMTxBWyN2wfHfnJXQlyhHFH3M+m/jHe297DZsrQxg9P6Kxka6waxl4NeeQzietoFlCxL7x10g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+  Reveal.initialize({
+    plugins: [RevealMarkdown, RevealHighlight, RevealZoom]
+  });
+</script>
+</body>
+
+</html>
