@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+
+<head>
+  <meta charset="utf-8" />
+  <title>操作系统引论</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css" integrity="sha512-0AUO8B5ll9y1ERV/55xq3HeccBGnvAJQsVGitNac/iQCLyDTGLUBMPqlupIWp/rJg0hV3WWHusXchEIdqFAv1Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/theme/black.min.css" integrity="sha512-B1sAcZ4KSpvbIUUvxaoqy56z88d6fozQyEV54K0gVBUMDMcVu9CAXMwJ5wTWo650j3IQH6yDEETiek6lrk/zCw==" crossorigin="anonymous" referrerpolicy="no-referrer" id="theme" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/monokai.min.css" integrity="sha512-z8wQkuDRFwCBfoj7KOiu1MECaRVoXx6rZQWL21x0BsVVH7JkqCp1Otf39qve6CrCycOOL5o9vgfII5Smds23rg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+        
+        <section>
+            <h2>进程的层次结构</h2>
+            <p>在OS中，允许一个进程创建另一个进程，通常把创建进程的进程称为父进程，而把被创建的进程称为子进程。子进程可继续创建更多的孙进程，由此便形成了一个进程的层次结构。如在UNIX中，进程与其子孙进程共同组成一个进程家族(组)。</p>
+        </section>
+
+        <section>
+            <h2>查看 Linux 的进程树</h2>
+            <pre>
+ps -aef --forest
+
+root      1352     1  0 Aug31 ?        00:00:00 /usr/sbin/sshd -D
+root      1648  1352  0 Aug31 ?        00:00:00  \_ sshd: root@notty
+root      1791  1648  0 Aug31 ?        00:00:00  |   \_ bash
+root      1837  1791  0 Aug31 ?        00:00:00  |       \_ sh /root/.vscode-server/bin/e4503b30fc78200f846c62cf8091
+root      1847  1837  0 Aug31 ?        00:00:37  |       |   \_ /root/.vscode-server/bin/e4503b30fc78200f846c62cf809
+root      1905  1847  0 Aug31 ?        00:01:17  |       |       \_ /root/.vscode-server/bin/e4503b30fc78200f846c62c
+root     20200  1905  0 Aug31 pts/0    00:00:00  |       |       |   \_ /bin/bash --init-file /root/.vscode-server/b
+root     23469  1905  0 Sep01 pts/1    00:00:00  |       |       |   \_ /bin/bash --init-file /root/.vscode-server/b
+root      8258 23469  0 10:01 pts/1    00:00:00  |       |       |   |   \_ ps -aef --forest
+            </pre>
+        </section>
+
+        <section>
+            <h2>进程的终止</h2>
+            <ol>
+                <li>根据被终止进程的标识符，从PCB集合中检索出该进程的PCB，从中读出该进程的状态</li>
+                <li>若被终止进程正处于执行状态，应立即终止该进程的执行，并置调度标志为真，用于指示该进程被终止后应重新进行调度</li>
+                <li>若该进程还有子孙进程，还应将其所有子孙进程也都予以终止，以防它们成为不可控的进程</li>
+                <li>将被终止进程所拥有的全部资源或者归还给其父进程，或者归还给系统</li>
+                <li>将被终止进程(PCB)从所在队列(或链表)中移出，等待其它程序来搜集信息</li>
+            </ol>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ## died_parent.c
+            ```C
+            #include <stdio.h>
+            #include <stddef.h>
+            #include <stdlib.h>
+            #include <unistd.h>
+            #include <sys/types.h>
+            #include <sys/wait.h>
+
+            int main() {
+                int status;
+                pid_t pid;
+            
+                pid = fork();
+                if (pid == 0) {
+                    /* This is the child process.  Execute the shell command. */
+                    printf("I'm child.\n");
+                    execl("/bin/ping", "/bin/ping", "www.baidu.com", NULL);
+                    _exit(EXIT_FAILURE);
+                }
+                else if (pid < 0)
+                    /* The fork failed.  Report failure.  */
+                    status = -1;
+                else {
+                    /* This is the parent process.  Wait for the child to complete.  */
+                    printf("I'm parent.\n");
+                    printf("Enter a char to exit:\n");
+                    getchar();
+                }
+            
+                return status;
+            }
+            ```
+
+            ```Bash
+            gcc died_parent.c -o died_parent
+            ./died_parent
+            ```
+            </script>
+        </section>
+
+        <section>
+            <h2>Linux 内核中常用的数据结构</h2>
+            <ul>
+                <li>Linked Lists</li>
+                <li>Queues</li>
+                <li>Maps</li>
+                <li>Binary Trees</li>
+            </ul>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ## Singly Linked Lists
+            ```C
+            /* an element in a linked list */
+            struct list_element { 
+                void *data; /* the payload */ 
+                struct list_element *next; /* pointer to the next element */
+            };
+            ```
+            </script>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ## Doubly Linked Lists
+            ```C
+            /* an element in a linked list */
+            struct list_element { 
+                void *data; /* the payload */ 
+                struct list_element *next; /* pointer to the next element */
+                struct list_element *prev; /* pointer to the previous element */
+            };
+            ```
+            </script>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ## A Fox
+            ```C
+            struct fox { 
+                unsigned long tail_length; /* length in centimeters of tail */ 
+                unsigned long weight; /* weight in kilograms */ 
+                bool is_fantastic; /* is this fox fantastic? */
+            };
+            ```
+            </script>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ## fox lists
+            ```C
+            struct fox { 
+                unsigned long tail_length; /* length in centimeters of tail */ 
+                unsigned long weight; /* weight in kilograms */ 
+                bool is_fantastic; /* is this fox fantastic? */
+
+                struct fox *next; /* next fox in linked list */ 
+                struct fox *prev; /* previous fox in linked list */
+            };
+            ```
+            </script>
+        </section>
+
+        <section>
+            <h2>Do not reinvent the wheel!</h2>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ```C
+            struct list_head { 
+                struct list_head *next 
+                struct list_head *prev;
+            };
+            ```
+            </script>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ```C
+            struct fox { 
+                unsigned long tail_length; /* length in centimeters of tail */ 
+                unsigned long weight; /* weight in kilograms */ 
+                bool is_fantastic; /* is this fox fantastic? */ 
+                struct list_head list; /* list of all fox structures */
+            };
+            ```
+            </script>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ```C
+            #define container_of(ptr, type, member) ({ \ 
+                const typeof( ((type *)0)->member ) *__mptr = (ptr); \ 
+                (type *)( (char *)__mptr - offsetof(type,member) );})
+            ```
+            </script>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ## new version
+            ```C
+            /**
+            * container_of - cast a member of a structure out to the containing structure
+            * @ptr:	the pointer to the member.
+            * @type:	the type of the container struct this is embedded in.
+            * @member:	the name of the member within the struct.
+            *
+            */
+            #define container_of(ptr, type, member) ({ \
+                void *__mptr = (void *)(ptr); \
+                ((type *)(__mptr - offsetof(type, member))); })
+            ```
+            </script>
+        </section>
+
+
+    </div>
+</div>
+
+    </div>
+</div>
+
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js" integrity="sha512-sMRSj1Ns64C2OE6VNS7WrV63OHW7dLAvi96CXRoy9AEe/tKF+868fhUJpc5ZKS166lwhe2ArCYjFitLJUY+VWA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js" integrity="sha512-xkVKkN0o7xECTHSUZ9zdsBYRXiAKH7CZ3aICpW6aQJZsufVVRLhEBTDjTpC1tPzm+gNZiOeW174zXAB2fOLsTg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/markdown/markdown.min.js" integrity="sha512-4exkEeyVuaWUFKozXl6L3UCugl6ai1cKnrVFkWUstdrNB2sDxxmPEaHBzTlYm9wX78EjPzEBG0s8k37oPeUFIw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/zoom/zoom.min.js" integrity="sha512-Gras1ky8LoFJWwMTxBWyN2wfHfnJXQlyhHFH3M+m/jHe297DZsrQxg9P6Kxka6waxl4NeeQzietoFlCxL7x10g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+  Reveal.initialize({
+    plugins: [RevealMarkdown, RevealHighlight, RevealZoom]
+  });
+</script>
+</body>
+
+</html>
