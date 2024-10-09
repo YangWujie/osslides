@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+
+<head>
+  <meta charset="utf-8" />
+  <title>进程的描述与控制</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css" integrity="sha512-0AUO8B5ll9y1ERV/55xq3HeccBGnvAJQsVGitNac/iQCLyDTGLUBMPqlupIWp/rJg0hV3WWHusXchEIdqFAv1Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/theme/black.min.css" integrity="sha512-B1sAcZ4KSpvbIUUvxaoqy56z88d6fozQyEV54K0gVBUMDMcVu9CAXMwJ5wTWo650j3IQH6yDEETiek6lrk/zCw==" crossorigin="anonymous" referrerpolicy="no-referrer" id="theme" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/monokai.min.css" integrity="sha512-z8wQkuDRFwCBfoj7KOiu1MECaRVoXx6rZQWL21x0BsVVH7JkqCp1Otf39qve6CrCycOOL5o9vgfII5Smds23rg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+        
+        <section>
+            <h2>Synchronization</h2>
+            <p>Process synchronization refers to the idea that multiple processes are to join up or handshake at a certain point, in order to reach an agreement or commit to a certain sequence of action.</p>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ## Test and Set
+            ```C
+            struct spinlock {
+                int v;
+            };
+            
+            void spin_lock(struct spinlock *lock) {
+                while(__atomic_test_and_set(&(lock->v), __ATOMIC_ACQUIRE));
+            }
+            
+            void spin_unlock(struct spinlock *lock) {
+                __atomic_store_n(&(lock->v), 0, __ATOMIC_RELEASE);
+            }
+            ```
+
+            ```Bash
+            gcc -c test_and_set.c -o test_and_set.o
+            objdump -d test_and_set.o
+            ```
+            </script>
+        </section>
+
+        <section>
+            <pre>
+0000000000000000 &ltspin_lock&gt:
+0:   55                      push   %rbp
+1:   48 89 e5                mov    %rsp,%rbp
+4:   48 89 7d f8             mov    %rdi,-0x8(%rbp)
+8:   90                      nop
+9:   48 8b 55 f8             mov    -0x8(%rbp),%rdx
+d:   b8 01 00 00 00          mov    $0x1,%eax
+12:   86 02                   xchg   %al,(%rdx)
+14:   84 c0                   test   %al,%al
+16:   75 f1                   jne    9 <spin_lock+0x9>
+18:   90                      nop
+19:   5d                      pop    %rbp
+1a:   c3                      retq   
+
+000000000000001b &ltspin_unlock&gt:
+1b:   55                      push   %rbp
+1c:   48 89 e5                mov    %rsp,%rbp
+1f:   48 89 7d f8             mov    %rdi,-0x8(%rbp)
+23:   48 8b 45 f8             mov    -0x8(%rbp),%rax
+27:   ba 00 00 00 00          mov    $0x0,%edx
+2c:   89 10                   mov    %edx,(%rax)
+2e:   90                      nop
+2f:   5d                      pop    %rbp
+30:   c3                      retq   
+             </pre>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ## Swap
+            ```C
+            struct spinlock {
+                int v;
+            };
+            
+            void spin_lock(struct spinlock *lock) {
+                while(__atomic_exchange_n(&(lock->v), 1, __ATOMIC_ACQUIRE));
+            }
+            
+            void spin_unlock(struct spinlock *lock) {
+                __atomic_store_n(&(lock->v), 0, __ATOMIC_RELEASE);
+            }
+            ```
+            </script>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ## 整形信号量
+            ```C
+            struct spinlock {
+                int v;
+            };
+            
+            void spin_lock(struct spinlock *lock) {
+                while (1) {
+                    if (__atomic_fetch_sub(&(lock->v), 1, __ATOMIC_ACQUIRE) > 0)
+                        break;
+                    else
+                        __atomic_fetch_add(&(lock->v), 1, __ATOMIC_RELAXED);
+                }
+            }
+            
+            void spin_unlock(struct spinlock *lock) {
+                __atomic_fetch_add(&(lock->v), 1, __ATOMIC_RELEASE);
+            }
+            ```
+            </script>
+        </section>
+
+        <section>
+            <p>之前使用的 __atomic 族函数请参考：</p>
+            <h2><a href="https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html">Built-in Functions for Memory Model Aware Atomic Operations</a></h2>
+        </section>
+
+        <section>
+            <h2>在单处理机系统中使用这样的 spinlock 会发生什么？</h2>
+        </section>
+
+        <section>
+            <h2><a href="https://www.kernel.org/doc/htmldocs/kernel-locking/uniprocessor.html">Locks and Uniprocessor Kernels</a></h2>
+        </section>
+        
+        <section>
+            <h2><a href="https://en.wikipedia.org/wiki/Peterson%27s_algorithm">Peterson's algorithm</a></h2>
+
+            皮特森算法是一个利用共享内存作为通信手段，实现两个或多个进程互斥访问共享资源的算法。
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ```C
+            bool flag[2] = {false, false};
+            int turn;
+            ```		
+            </script>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ```C
+            P0:      flag[0] = true;
+            P0_gate: turn = 1;
+                     while (flag[1] == true && turn == 1)
+                     {
+                         // busy wait
+                     }
+                     // critical section
+                     ...
+                     // end of critical section
+                     flag[0] = false;
+            ```		
+            </script>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+            ```C
+            P1:      flag[1] = true;
+            P1_gate: turn = 0;
+                     while (flag[0] == true && turn == 0)
+                     {
+                         // busy wait
+                     }
+                     // critical section
+                     ...
+                     // end of critical section
+                     flag[1] = false;
+            ```		
+            </script>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+                ```C
+                #include <stdio.h>
+                #include <stdlib.h>
+                #include <stdint.h>
+                #include <pthread.h>
+                
+                volatile int accnt0 = 0;
+                volatile int accnt1 = 0;
+                volatile int flag[2] = {0, 0};
+                volatile int turn = 0;
+                
+                void *worker(void *arg) {
+                    int r, total;
+                    int id = (int)(uintptr_t)arg;
+                    int peer = 1 - id;
+                
+                    do {
+                        flag[id] = 1;
+                        turn = peer;
+                        while (flag[peer] == 1 && turn == peer);
+                
+                        r = rand();
+                        accnt0 += r;
+                        accnt1 -= r;
+                        total = accnt0 + accnt1;
+                
+                        flag[id] = 0;
+                    } while (total == 0);
+                
+                    printf("Oops...\n");
+                
+                    return NULL;
+                }
+                
+                int main(int argc, char *argv[]) {
+                    pthread_t p0, p1;
+                    srand(0);
+                    pthread_create(&p0, NULL, worker, (void*)0); 
+                    pthread_create(&p1, NULL, worker, (void*)1);
+                    pthread_join(p0, NULL);
+                    pthread_join(p1, NULL);
+                
+                    return 0;
+                }
+                ```
+
+                ```Bash
+                gcc peterson.c -o peterson
+                ./peterson
+                ```
+            </script>
+        </section>
+
+        <section>
+            <ul>
+                <li>皮特森算法是正确的</li>
+                <li>这个程序正确地实现了皮特森算法</li>
+                <li>But...</li>
+                <li>程序在X86多核系统中运行几分钟或者几十分钟后，可能会给出错误的结果</li>
+                <li>Why?</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2><a href="https://www.quora.com/Why-doesnt-Petersons-mutex-algorithm-work-with-modern-memory-consistency-models">Why doesn't Peterson's mutex algorithm work with modern memory consistency models?</a></h2>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+                ## Peterson's algorithm with memory fence
+                ```C
+                #include <stdio.h>
+                #include <stdlib.h>
+                #include <stdint.h>
+                #include <pthread.h>
+                
+                volatile int accnt0 = 0;
+                volatile int accnt1 = 0;
+                volatile int flag[2] = {0, 0};
+                volatile int turn = 0;
+                
+                void *worker(void *arg) {
+                    int r, total;
+                    int id = (int)(uintptr_t)arg;
+                    int peer = 1 - id;
+                
+                    do {
+                        flag[id] = 1;
+                        turn = peer;
+                
+                        __sync_synchronize();
+                
+                        while (flag[peer] == 1 && turn == peer);
+                
+                        r = rand();
+                        if (r < 100)
+                            printf("I'm living. %d\n", id);
+                        accnt0 += r;
+                        accnt1 -= r;
+                        total = accnt0 + accnt1;
+                
+                        flag[id] = 0;
+                    } while (total == 0);
+                
+                    printf("Oops...\n");
+                
+                    return NULL;
+                }
+                
+                int main(int argc, char *argv[]) {
+                    pthread_t p0, p1;
+                    srand(0);
+                    pthread_create(&p0, NULL, worker, (void*)0); 
+                    pthread_create(&p1, NULL, worker, (void*)1);
+                    pthread_join(p0, NULL);
+                    pthread_join(p1, NULL);
+                
+                    return 0;
+                }
+                ```		
+            </script>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+                ## Condition Variables
+                ```C
+                thread 1:
+                    pthread_mutex_lock(&mutex);
+                    while (!condition)
+                        pthread_cond_wait(&cond, &mutex);
+                    /* do something that requires holding the mutex and condition is true */
+                    pthread_mutex_unlock(&mutex);
+            
+                thread2:
+                    pthread_mutex_lock(&mutex);
+                    /* do something that might make condition true */
+                    pthread_cond_signal(&cond);
+                    pthread_mutex_unlock(&mutex);
+                ```		
+            </script>
+        </section>
+
+        <section data-markdown>
+            <script type="text/template">
+                ## Java
+                ```Java
+                public class BlockingQueue<T> {
+
+                    private Queue<T> queue = new LinkedList<T>();
+                    private int capacity;
+                
+                    public BlockingQueue(int capacity) {
+                        this.capacity = capacity;
+                    }
+                
+                    public synchronized void put(T element) throws InterruptedException {
+                        while(queue.size() == capacity) {
+                            wait();
+                        }
+                
+                        queue.add(element);
+                        notify(); // notifyAll() for multiple producer/consumer threads
+                    }
+                
+                    public synchronized T take() throws InterruptedException {
+                        while(queue.isEmpty()) {
+                            wait();
+                        }
+                
+                        T item = queue.remove();
+                        notify(); // notifyAll() for multiple producer/consumer threads
+                        return item;
+                    }
+                }
+                ```
+                </script>
+        </section>
+
+        <section>
+            <h2>And型信号量与信号量集</h2>
+            <p><a href="https://docs.oracle.com/cd/E19683-01/816-5042/auto32/index.html">System V Semaphores</a></p>
+            <h2>extremely heavy weight</h2>
+        </section>
+
+        <section>
+            <h2>第三版</h2>
+            <img src="assets/and_semaphore_3rd.png" alt="">
+        </section>
+
+        <section>
+            <h2>第四版</h2>
+            <img src="assets/and_semaphore_4th.png" alt="">
+            <p>从第三版到第四版修改了无数错误（主要是拼写错误）这是少数的越改越糟糕的情形。</p>
+        </section>
+
+
+
+
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js" integrity="sha512-sMRSj1Ns64C2OE6VNS7WrV63OHW7dLAvi96CXRoy9AEe/tKF+868fhUJpc5ZKS166lwhe2ArCYjFitLJUY+VWA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js" integrity="sha512-xkVKkN0o7xECTHSUZ9zdsBYRXiAKH7CZ3aICpW6aQJZsufVVRLhEBTDjTpC1tPzm+gNZiOeW174zXAB2fOLsTg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/markdown/markdown.min.js" integrity="sha512-4exkEeyVuaWUFKozXl6L3UCugl6ai1cKnrVFkWUstdrNB2sDxxmPEaHBzTlYm9wX78EjPzEBG0s8k37oPeUFIw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/zoom/zoom.min.js" integrity="sha512-Gras1ky8LoFJWwMTxBWyN2wfHfnJXQlyhHFH3M+m/jHe297DZsrQxg9P6Kxka6waxl4NeeQzietoFlCxL7x10g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+  Reveal.initialize({
+    plugins: [RevealMarkdown, RevealHighlight, RevealZoom]
+  });
+</script>
+</body>
+
+</html>
